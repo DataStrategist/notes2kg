@@ -33,4 +33,5 @@ df_nodes <- df_nodes %>%
 visNetwork(nodes = df_nodes, edges = df_edges) %>% 
   visEdges(font = list(color = "grey")) %>% 
   visOptions(nodesIdSelection = TRUE) %>%
-  visLegend()
+  visLegend() %>% 
+  visOptions(highlightNearest = TRUE)
