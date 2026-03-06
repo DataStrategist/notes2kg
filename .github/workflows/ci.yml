@@ -1,0 +1,42 @@
+name: CI — Parse and Lint R
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Syntax check and lint R files
+    runs-on: self-hosted
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse R files for syntax errors
+        run: |
+          Rscript -e '
+            files <- list.files(".", recursive = TRUE, full.names = TRUE)
+            files <- files[endsWith(files, ".R")]
+            excl  <- c("/.git/", "/renv/", "/packrat/", "/.venv/", ".Rcheck")
+            files <- files[!Reduce("|", lapply(excl, function(s) grepl(s, files, fixed = TRUE)))]
+            if (length(files) == 0) { message("No R files found — skipping parse."); quit(status = 0) }
+            message("Parsing ", length(files), " R file(s)...")
+            for (f in files) tryCatch(parse(f), error = function(e) stop(f, ": ", conditionMessage(e)))
+            message("All files parsed OK.")
+          '
+
+      - name: Lint R and Rmd files
+        run: |
+          Rscript -e '
+            files <- list.files(".", recursive = TRUE, full.names = TRUE)
+            files <- files[endsWith(files, ".R") | endsWith(files, ".Rmd")]
+            excl  <- c("/.git/", "/renv/", "/packrat/", "/.venv/", ".Rcheck")
+            files <- files[!Reduce("|", lapply(excl, function(s) grepl(s, files, fixed = TRUE)))]
+            if (length(files) == 0) { message("No R/Rmd files found — skipping lint."); quit(status = 0) }
+            message("Linting ", length(files), " file(s)...")
+            errs  <- do.call(c, lapply(files, lintr::lint))
+            if (length(errs) > 0) { print(errs); stop(length(errs), " lint error(s) found") }
+            message("Lint clean.")
+          '
