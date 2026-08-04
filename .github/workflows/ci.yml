@@ -1,4 +1,4 @@
-name: CI — Parse and Lint R
+name: CI + CD — Lint then Pull
 
 on:
   push:
@@ -40,3 +40,19 @@ jobs:
             if (length(errs) > 0) { print(errs); stop(length(errs), " lint error(s) found") }
             message("Lint clean.")
           '
+
+  deploy:
+    name: Pull latest to DataVM-01
+    runs-on: self-hosted
+    needs: lint
+    if: github.event_name == 'push'
+
+    steps:
+      - name: Pull latest main
+        run: |
+          cd /srv/projects/knowledge_graph
+          git checkout main
+          git stash
+          git pull origin main
+          echo "Pulled to: $(git rev-parse --short HEAD)"
+          echo "Last commit: $(git log -1 --pretty=%B)"
